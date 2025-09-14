@@ -1,14 +1,10 @@
-<?php
-// index.php
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Video Player</title>
-    <!-- Link external stylesheet -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
@@ -23,13 +19,13 @@
             // ---- Allow specific video formats only ----
             $allowedExt = ['mp4', 'mkv', 'webm', 'avi']; // Allowed extensions
             $selectedName = $_POST['name'] ?? '';
-            // ---- Scan videos folder for videos ----
-            foreach (scandir("videos") as $file) {
+            // ---- Scan converted folder for videos ----
+            foreach (scandir("converted") as $file) {
                 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                 if (in_array($ext, $allowedExt)) {
-                    $safeName = htmlspecialchars($file); // Prevent XSS
+                    $safeName = htmlspecialchars($file); // Prevent XSS by escaping filename
                     $isSelected = ($file === $selectedName) ? 'selected' : '';
-                    echo "<option value="$safeName" $isSelected>$safeName</option>";
+                    echo "<option value=\"$safeName\" $isSelected>$safeName</option>";
                 }
             }
             ?>
@@ -42,21 +38,22 @@
     if ($_SERVER["REQUEST_METHOD"] === "POST" && !empty($_POST["name"])) {
         // ---- Get safe filename ----
         $selectedName = basename($_POST["name"]);
-        $filePath = 'videos/' . $selectedName;
-
-        // ---- Security check ----
-        if (file_exists($filePath) && strpos(realpath($filePath), realpath('videos')) === 0) {
+        $filePath = 'converted/' . $selectedName;
+        // ---- Security check: file must exist and be inside "converted" ----
+        if (file_exists($filePath) && strpos(realpath($filePath), realpath('converted')) === 0) {
             // ---- Detect video MIME type ----
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mimeType = finfo_file($finfo, $filePath);
             finfo_close($finfo);
-
             // ---- Permit only safe MIME types ----
             $allowedTypes = ['video/mp4', 'video/x-matroska', 'video/webm', 'video/x-msvideo', 'application/octet-stream'];
             if (!in_array($mimeType, $allowedTypes)) {
+                // ---- Invalid video type error ----
                 echo '<p class="error">Error: Unsupported video type.</p>';
             } else {
+                // ---- Display video details and player ----
                 $sizeMB = round(filesize($filePath) / (1024 * 1024), 2);
+                // $lastModified = date("F d, Y H:i", filemtime($filePath));
                 echo "<h3>Playing: " . htmlspecialchars($selectedName) . "</h3>";
                 echo "<video controls autoplay preload=\"metadata\" tabindex=\"0\">
                         <source src=\"" . htmlspecialchars($filePath) . "\" type=\"" . htmlspecialchars($mimeType) . "\">
@@ -65,6 +62,7 @@
                 echo "<div class='info'>Size: {$sizeMB} MB</div>";
             }
         } else {
+            // ---- Video not found error ----
             echo '<p class="error">Video not found: ' . htmlspecialchars($selectedName) . '</p>';
         }
     }
