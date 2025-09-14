@@ -36,7 +36,7 @@ video selection and playback.
     server's document root directory.
 
     ``` bash
-    git clone https://github.com/yourusername/php-video-player.git
+    git clone https://github.com/Mahi-Rocks/php-video-player.git
     cd php-video-player
     ```
 
